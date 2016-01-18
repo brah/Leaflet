@@ -291,6 +291,8 @@ L.GridLayer = L.Layer.extend({
 	},
 
 	_resetAll: function () {
+		return;
+		
 		for (var z in this._levels) {
 			L.DomUtil.remove(this._levels[z].el);
 			delete this._levels[z];
