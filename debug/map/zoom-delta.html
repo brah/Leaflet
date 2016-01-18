@@ -60,7 +60,8 @@
 		var sf = [37.77, -122.42],
 			trd = [63.41, 10.41];
 
-		var osmUrl = 'http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+
+        var osmUrl = 'http://{s}.tiles.maphub.net/mapbox-studio-osm-bright/{z}/{x}/{y}{r}.png',
 			osmAttrib = '&copy; <a href="http://openstreetmap.org/copyright">OpenStreetMap</a> contributors',
 			osm1 = L.tileLayer(osmUrl, {maxZoom: 18, attribution: osmAttrib}),
 			osm2 = L.tileLayer(osmUrl, {maxZoom: 18, attribution: osmAttrib}),
@@ -71,7 +72,8 @@
 			layers: [osm1],
 			zoom: 5,
 			zoomSnap: 0.25,
-			zoomDelta: 0.5
+			zoomDelta: 0.5,
+            zoomAnimation: true,
 		});
 
 		var map2 = new L.Map('map2', {
@@ -79,7 +81,8 @@
 			layers: [osm2],
 			zoom: 5,
 			zoomSnap: 0,
-			zoomDelta: 0.25
+			zoomDelta: 0.25,
+            zoomAnimation: false,
 		});
 
 		map1.on('zoomend',function(){
