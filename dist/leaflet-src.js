@@ -1,5 +1,5 @@
 /*
- Leaflet 1.0.0-beta.2 (bfb0ead), a JS library for interactive maps. http://leafletjs.com
+ Leaflet 1.0.0-beta.2 (3a5ac14), a JS library for interactive maps. http://leafletjs.com
  (c) 2010-2015 Vladimir Agafonkin, (c) 2010-2011 CloudMade
 */
 (function (window, document, undefined) {
@@ -7628,8 +7628,25 @@ L.Map.ScrollWheelZoom = L.Handler.extend({
 	},
 
 	_onWheelScroll: function (e) {
-		var delta = L.DomEvent.getWheelDelta(e);
-		var debounce = this._map.options.wheelDebounceTime;
+        var delta = L.DomEvent.getWheelDelta(e);
+        var debounce = this._map.options.wheelDebounceTime;
+
+        if (!delta) {
+            L.DomEvent.stop(e);
+            return;
+        }
+
+        console.log(delta);
+
+        if (delta % 4.000244140625 == 0) { // webkit wheel scrolling
+            this._mode = 'wheel';
+        } else if (Math.abs(delta) <= 4) { // small value: trackpad
+            this._mode = 'trackpad';
+        } else if (e.deltaMode !== 0) { // not pixel scroll: wheel
+            this._mode = 'wheel';
+        } else {
+            this._mode = 'trackpad';
+        }
 
 		this._delta += delta;
 		this._lastMousePos = this._map.mouseEventToContainerPoint(e);
@@ -7649,13 +7666,27 @@ L.Map.ScrollWheelZoom = L.Handler.extend({
 	_performZoom: function () {
 		var map = this._map,
 		    zoom = map.getZoom(),
-			scrollDeltaLimit = this._map.options.zoomAnimation ? 1 : 0.2;
+            sigm_max, sigm_steepness;
 
 		map._stop(); // stop panning and fly animations if any
 
-		// sigmoid
-		var sigm_max = map.options.zoomAnimation ? 4 : 0.3;
-		var sigm_steepness = map.options.zoomAnimation ? 200 : 20;
+        // sigmoid
+        if (map.options.zoomAnimation) {
+            sigm_max = 4;
+            sigm_steepness = 200;
+        }
+
+        else {
+            if (this._mode === 'trackpad') {
+                sigm_max = 0.3;
+                sigm_steepness = 20;
+            }
+            else {
+                sigm_max = 1.3;
+                sigm_steepness = 200;
+            }
+        }
+
 		var v1 = 1 / (1 + Math.exp(-this._delta / sigm_steepness)) - 0.5;
 		var v2 = v1 * sigm_max * 2;
 		var delta = map._limitZoom(zoom + v2) - zoom;
