@@ -40,21 +40,19 @@ L.Map.ScrollWheelZoom = L.Handler.extend({
 	_performZoom: function () {
 		var map = this._map,
 		    zoom = map.getZoom(),
-			scrollDelta = 2;
-
-		if (!this._map.options.zoomAnimation) {
-			scrollDelta *= 0.5;
-		}
+			scrollDeltaLimit = this._map.options.zoomAnimation ? 1 : 0.2;
 
 		map._stop(); // stop panning and fly animations if any
 
 		// map the delta with a sigmoid function to -4..4 range leaning on -1..1
 
-		var v1 = -Math.abs(this._delta / 200);
-		var v2 = Math.log(2 / (1 + Math.exp(v1)));
-		var d2 = Math.min(4 * v2  / Math.LN2 * scrollDelta, scrollDelta);
+		//var v1 = -Math.abs(this._delta / 200);
+		//var v2 = Math.log(2 / (1 + Math.exp(v1)));
+		//var d2 = Math.min(v2 * 12, scrollDeltaLimit);
+		//var delta = map._limitZoom(zoom + (this._delta > 0 ? d2 : -d2)) - zoom;
 
-		var delta = map._limitZoom(zoom + (this._delta > 0 ? d2 : -d2)) - zoom;
+		var delta = this._delta / 200;
+		console.log(this._delta);
 
 		this._delta = 0;
 		this._startTime = null;
