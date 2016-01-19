@@ -1,5 +1,5 @@
 /*
- Leaflet 1.0.0-beta.2 (e6cc7cf), a JS library for interactive maps. http://leafletjs.com
+ Leaflet 1.0.0-beta.2 (bfb0ead), a JS library for interactive maps. http://leafletjs.com
  (c) 2010-2015 Vladimir Agafonkin, (c) 2010-2011 CloudMade
 */
 (function (window, document, undefined) {
@@ -7649,21 +7649,16 @@ L.Map.ScrollWheelZoom = L.Handler.extend({
 	_performZoom: function () {
 		var map = this._map,
 		    zoom = map.getZoom(),
-			scrollDelta = 2;
-
-		if (!this._map.options.zoomAnimation) {
-			scrollDelta *= 0.5;
-		}
+			scrollDeltaLimit = this._map.options.zoomAnimation ? 1 : 0.2;
 
 		map._stop(); // stop panning and fly animations if any
 
-		// map the delta with a sigmoid function to -4..4 range leaning on -1..1
-
-		var v1 = -Math.abs(this._delta / 200);
-		var v2 = Math.log(2 / (1 + Math.exp(v1)));
-		var d2 = Math.min(4 * v2  / Math.LN2 * scrollDelta, scrollDelta);
-
-		var delta = map._limitZoom(zoom + (this._delta > 0 ? d2 : -d2)) - zoom;
+		// sigmoid
+		var sigm_max = map.options.zoomAnimation ? 4 : 0.3;
+		var sigm_steepness = map.options.zoomAnimation ? 200 : 20;
+		var v1 = 1 / (1 + Math.exp(-this._delta / sigm_steepness)) - 0.5;
+		var v2 = v1 * sigm_max * 2;
+		var delta = map._limitZoom(zoom + v2) - zoom;
 
 		this._delta = 0;
 		this._startTime = null;
