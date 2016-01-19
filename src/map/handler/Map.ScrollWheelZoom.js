@@ -23,15 +23,18 @@ L.Map.ScrollWheelZoom = L.Handler.extend({
         var debounce = this._map.options.wheelDebounceTime;
 
         if (!delta) {
+            L.DomEvent.stop(e);
             return;
         }
 
         console.log(delta);
 
-        if (delta % 4.000244140625 == 0) {
+        if (delta % 4.000244140625 == 0) { // webkit wheel scrolling
             this._mode = 'wheel';
-        } else if (Math.abs(delta) <= 4) {
+        } else if (Math.abs(delta) <= 4) { // small value: trackpad
             this._mode = 'trackpad';
+        } else if (e.deltaMode !== 0) { // not pixel scroll: wheel
+            this._mode = 'wheel';
         } else {
             this._mode = 'trackpad';
         }
