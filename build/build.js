@@ -101,9 +101,7 @@ exports.build = function (callback, version, compsBase32, buildName) {
 
 	    filenamePart = 'leaflet' + (buildName ? '-' + buildName : ''),
 	    pathPart = 'dist/' + filenamePart,
-	    srcPath = pathPart + '-src.js',
-	    mapPath = pathPart + '-src.map',
-	    srcFilename = filenamePart + '-src.js',
+	    srcPath = pathPart + '-src.txt',
 	    mapFilename = filenamePart + '-src.map',
 
 	    bundle = bundleFiles(files, copy),
@@ -116,49 +114,8 @@ exports.build = function (callback, version, compsBase32, buildName) {
 
 	if (newSrc !== oldSrc) {
 		fs.writeFileSync(srcPath, newSrc);
-		fs.writeFileSync(mapPath, bundle.generateMap({
-			file: srcFilename,
-			includeContent: true,
-			hires: false
-		}));
 		console.log('\tSaved to ' + srcPath);
 	}
-
-	var path = pathPart + '.js',
-	    oldCompressed = loadSilently(path),
-	    newCompressed = copy + UglifyJS.minify(newSrc, {
-	        warnings: true,
-	        fromString: true
-	    }).code,
-	    delta = getSizeDelta(newCompressed, oldCompressed);
-
-	console.log('\tCompressed: ' + bytesToKB(newCompressed.length) + delta);
-
-	var newGzipped,
-	    gzippedDelta = '';
-
-	function done() {
-		if (newCompressed !== oldCompressed) {
-			fs.writeFileSync(path, newCompressed);
-			console.log('\tSaved to ' + path);
-		}
-		console.log('\tGzipped: ' + bytesToKB(newGzipped.length) + gzippedDelta);
-		callback();
-	}
-
-	zlib.gzip(newCompressed, function (err, gzipped) {
-		if (err) { return; }
-		newGzipped = gzipped;
-		if (oldCompressed && (oldCompressed !== newCompressed)) {
-			zlib.gzip(oldCompressed, function (err, oldGzipped) {
-				if (err) { return; }
-				gzippedDelta = getSizeDelta(gzipped, oldGzipped);
-				done();
-			});
-		} else {
-			done();
-		}
-	});
 };
 
 exports.test = function(complete, fail) {

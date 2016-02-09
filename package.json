@@ -19,7 +19,7 @@
     "phantomjs": "^1.9.18",
     "uglify-js": "~2.4.23"
   },
-  "main": "dist/leaflet-src.js",
+  "main": "dist/leaflet-src.txt",
   "style": "dist/leaflet.css",
   "scripts": {
     "test": "jake test",

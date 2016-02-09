@@ -34,16 +34,7 @@ task('lintspec', {async: true}, hint('Checking for specs JS errors...', 'spec/su
 
 desc('Combine and compress Leaflet source files');
 task('build', {async: true}, function (compsBase32, buildName) {
-	var v;
-
-	jake.exec('git log -1 --pretty=format:"%h"', {breakOnError: false}, function () {
-		build.build(complete, v, compsBase32, buildName);
-
-	}).on('stdout', function (data) {
-		v = version + ' (' + data.toString() + ')';
-	}).on('error', function () {
-		v = version;
-	});
+    build.build(complete, version, compsBase32, buildName);
 });
 
 desc('Run PhantomJS tests');
