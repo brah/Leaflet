@@ -1,3 +1,5 @@
+demo: http://jsbin.com/vowazoqopo/1/edit?output
+
 <img src="http://leafletjs.com/docs/images/logo.png" alt="Leaflet" />
 
 Leaflet is an open source JavaScript library for **mobile-friendly interactive maps**.
