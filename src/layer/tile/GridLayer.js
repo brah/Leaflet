@@ -25,7 +25,7 @@ L.GridLayer = L.Layer.extend({
 		options = L.setOptions(this, options);
 	},
 
-	onAdd: function () {
+	onAdd: function (map) {
 		this._initContainer();
 
 		this._levels = {};
@@ -33,6 +33,7 @@ L.GridLayer = L.Layer.extend({
 
 		this._resetView();
 		this._update();
+		map.on('rotateend', this._onMoveEnd, this);
 	},
 
 	beforeAdd: function (map) {
@@ -44,6 +45,7 @@ L.GridLayer = L.Layer.extend({
 		map._removeZoomLimit(this);
 		this._container = null;
 		this._tileZoom = null;
+		map.off('rotateend', this._onMoveEnd, this);
 	},
 
 	bringToFront: function () {
@@ -408,7 +410,7 @@ L.GridLayer = L.Layer.extend({
 	},
 
 	_onMoveEnd: function () {
-		if (!this._map) { return; }
+		if (!this._map || this._map.isRotating()) { return; }
 
 		this._update();
 		this._pruneTiles();
@@ -419,9 +421,17 @@ L.GridLayer = L.Layer.extend({
 
 		var scale = map.getZoomScale(zoom, tileZoom),
 			pixelCenter = map.project(center, tileZoom).floor(),
-			halfSize = map.getSize().divideBy(scale * 2);
+// 			halfSize = map.getSize().divideBy(scale * 2);
+		    size = map.getSize(),
+// 		    halfSize = size.divideBy(scale * 2),
+		    halfPaneSize = new L.Bounds([
+		        map.containerPointToLayerPoint([0, 0]).floor(),
+		        map.containerPointToLayerPoint([size.x, 0]).floor(),
+		        map.containerPointToLayerPoint([0, size.y]).floor(),
+		        map.containerPointToLayerPoint([size.x, size.y]).floor()
+		    ]).getSize().divideBy(scale * 2);
 
-		return new L.Bounds(pixelCenter.subtract(halfSize), pixelCenter.add(halfSize));
+		return new L.Bounds(pixelCenter.subtract(halfPaneSize), pixelCenter.add(halfPaneSize));
 	},
 
 	_update: function (center, zoom) {
@@ -441,6 +451,10 @@ L.GridLayer = L.Layer.extend({
 		var tileRange = this._pxBoundsToTileRange(pixelBounds),
 			tileCenter = tileRange.getCenter(),
 			queue = [];
+
+// 		console.log('pxcenter:', pixelCenter);
+// 		console.log('px:', pixelBounds.min, pixelBounds.max);
+// 		console.log('tile:', tileRange.min, tileRange.max);
 
 		for (var key in this._tiles) {
 			this._tiles[key].current = false;

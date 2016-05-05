@@ -16,11 +16,15 @@ L.Map = L.Evented.extend({
 		fadeAnimation: true,
 		trackResize: true,
 		markerZoomAnimation: true,
-		maxBoundsViscosity: 0.0
+		maxBoundsViscosity: 0.0,
+		bearing: 0,
+		rotate: false
 	},
 
 	initialize: function (id, options) { // (HTMLElement or String, Object)
 		options = L.setOptions(this, options);
+
+		if (options.bearing) { this._bearing = options.bearing; }
 
 		this._initContainer(id);
 		this._initLayout();
@@ -435,11 +439,24 @@ L.Map = L.Evented.extend({
 	},
 
 	containerPointToLayerPoint: function (point) { // (Point)
-		return L.point(point).subtract(this._getMapPanePos());
+// 		return L.point(point).subtract(this._getMapPanePos());
+// 		return L.point(point).subtract(this._getMapPanePos()).rotateFrom(-this._bearing, this._getRotatePanePos());
+
+		return L.point(point)
+			.subtract(this._getMapPanePos())
+			.rotateFrom(-this._bearing, this._getRotatePanePos())
+			.subtract(this._getRotatePanePos())
+			;
 	},
 
 	layerPointToContainerPoint: function (point) { // (Point)
-		return L.point(point).add(this._getMapPanePos());
+// 		return L.point(point).add(this._getMapPanePos());
+// 		return L.point(point).add(this._getMapPanePos()).rotateFrom(this._bearing, this._getRotatePanePos());
+		return L.point(point)
+			.add(this._getRotatePanePos())
+			.rotateFrom(this._bearing, this._getRotatePanePos())
+			.add(this._getMapPanePos())
+			;
 	},
 
 	containerPointToLatLng: function (point) {
@@ -461,6 +478,55 @@ L.Map = L.Evented.extend({
 
 	mouseEventToLatLng: function (e) { // (MouseEvent)
 		return this.layerPointToLatLng(this.mouseEventToLayerPoint(e));
+	},
+
+
+	// Rotation methods
+	// setBearing will work with just the 'theta' parameter. unfinished is
+	//   completely optional.
+	// Set theta to the desired bearing, in degrees.
+	// Set unfinished to true in order to not fire the 'rotateend' event. This is useful
+	//   when a lot of rotations are going to happen in a short period of time, e.g.
+	//   a touchscreen rotation or dragging a rotation slider.
+	// Make sure that a final call with unfinished=false is sent at the end of such
+	//   a series of rotations.
+	setBearing: function(theta, unfinished) {
+		if (!L.Browser.any3d || !this.options.rotate) { return; }
+
+		if (!this._rotating) {
+			this.fire('rotatestart');
+		}
+
+		var rotatePanePos = this._getRotatePanePos();
+		var halfSize = this.getSize().divideBy(2);
+		this._pivot = this._getMapPanePos().clone().multiplyBy(-1).add(halfSize);
+
+		rotatePanePos = rotatePanePos.rotateFrom(-this._bearing, this._pivot);
+
+		this._bearing = theta * L.DomUtil.DEG_TO_RAD;
+		this._rotatePanePos = rotatePanePos.rotateFrom(this._bearing, this._pivot);
+
+		L.DomUtil.setPosition(this._rotatePane, this._rotatePanePos, this._bearing, this._rotatePanePos);
+
+		this.fire('rotate');
+		// We don't want to fire the rotate event on every frame of a touchscreen
+		//   gesture
+		if (unfinished) {
+			this._rotating = true;
+		} else {
+			this.fire('rotateend');
+			this._rotating = false;
+		}
+	},
+
+	getBearing: function() {
+		return (this._bearing || 0) * L.DomUtil.RAD_TO_DEG;
+	},
+
+	// Some code will need to know if the map will fire a 'rotateend' event in the
+	//   near future, to account for animations and such
+	isRotating: function() {
+		return this._rotating;
 	},
 
 
@@ -511,11 +577,15 @@ L.Map = L.Evented.extend({
 		this._mapPane = this.createPane('mapPane', this._container);
 		L.DomUtil.setPosition(this._mapPane, new L.Point(0, 0));
 
-		this.createPane('tilePane');
-		this.createPane('shadowPane');
-		this.createPane('overlayPane');
-		this.createPane('markerPane');
-		this.createPane('popupPane');
+		this._pivot = this.getSize().divideBy(2);
+		this._rotatePane = this.createPane('rotatePane', this._mapPane);
+		L.DomUtil.setPosition(this._rotatePane, new L.Point(0, 0), this._bearing, this._pivot);
+
+		this.createPane('tilePane',    this._rotatePane);
+		this.createPane('shadowPane',  this._rotatePane);
+		this.createPane('overlayPane', this._rotatePane);
+		this.createPane('markerPane',  this._rotatePane);
+		this.createPane('popupPane',   this._rotatePane);
 
 		if (!this.options.markerZoomAnimation) {
 			L.DomUtil.addClass(panes.markerPane, 'leaflet-zoom-hide');
@@ -727,6 +797,10 @@ L.Map = L.Evented.extend({
 		return L.DomUtil.getPosition(this._mapPane) || new L.Point(0, 0);
 	},
 
+	_getRotatePanePos: function () {
+		return this._rotatePanePos || new L.Point(0, 0);
+	},
+
 	_moved: function () {
 		var pos = this._getMapPanePos();
 		return pos && !pos.equals([0, 0]);
@@ -740,8 +814,16 @@ L.Map = L.Evented.extend({
 	},
 
 	_getNewPixelOrigin: function (center, zoom) {
+
 		var viewHalf = this.getSize()._divideBy(2);
-		return this.project(center, zoom)._subtract(viewHalf)._add(this._getMapPanePos())._round();
+
+		return this.project(center, zoom)
+			.rotate(this._bearing)
+			._subtract(viewHalf)
+			._add(this._getMapPanePos())
+			.add(this._getRotatePanePos())
+			.rotate(-this._bearing)
+			._round();
 	},
 
 	_latLngToNewLayerPoint: function (latlng, zoom, center) {
