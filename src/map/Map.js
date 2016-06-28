@@ -53,6 +53,8 @@ L.Map = L.Evented.extend({
 		// [`setMaxBounds`](#map-setmaxbounds) method.
 		maxBounds: undefined,
 
+		maxBoundsCentering: true,
+
 		// @option renderer: Renderer = *
 		// The default method for drawing vector layers on the map. `L.SVG`
 		// or `L.Canvas` by default depending on browser support.
@@ -263,11 +265,15 @@ L.Map = L.Evented.extend({
 
 		this.options.maxBounds = bounds;
 
-		if (this._loaded) {
+		if (this._loaded && this.options.maxBoundsCentering) {
 			this._panInsideMaxBounds();
 		}
 
-		return this.on('moveend', this._panInsideMaxBounds);
+		if (this.options.maxBoundsCentering) {
+			this.on('moveend', this._panInsideMaxBounds);
+		}
+
+		return this;
 	},
 
 	// @method setMinZoom(zoom: Number): this
