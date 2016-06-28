@@ -24,10 +24,12 @@
 			bounds = new L.LatLngBounds(new L.LatLng(49.5, -11.3), new L.LatLng(61.2, 2.5));
 
 		var map = new L.Map('map', {
-			center: bounds.getCenter(),
-			zoom: 7,
+			center: [60, -4],
+			zoom: 5,
 			layers: [osm],
-			maxBounds: bounds
+//			maxBounds: bounds
+			maxBoundsCentering: false,
+			maxBoundsViscosity: 1
 		});
 
 
