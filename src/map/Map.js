@@ -1140,7 +1140,34 @@ L.Map = L.Evented.extend({
 		var viewBounds = this.getPixelBounds(),
 		    newBounds = new L.Bounds(viewBounds.min.add(offset), viewBounds.max.add(offset));
 
-		return offset.add(this._getBoundsOffset(newBounds, bounds));
+		L.rectangle(
+			L.latLngBounds(
+				this.unproject(viewBounds.min),
+				this.unproject(viewBounds.max)),
+			{color: 'blue'}
+		).addTo(this);
+
+		L.rectangle(
+			L.latLngBounds(
+				this.unproject(newBounds.min),
+				this.unproject(newBounds.max)),
+			{color: 'red'}
+		).addTo(this);
+
+		//console.log(offset);
+
+		var getBoundsOffset = this._getBoundsOffset(newBounds, bounds);
+		var newOffset = offset.add(getBoundsOffset);
+		var newBoundsOffset = L.bounds(viewBounds.min.add(newOffset), viewBounds.max.add(newOffset));
+
+		L.rectangle(
+			L.latLngBounds(
+				this.unproject(newBoundsOffset.min),
+				this.unproject(newBoundsOffset.max)),
+			{color: 'green'}
+		).addTo(this);
+
+		return newOffset;
 	},
 
 	// returns offset needed for pxBounds to get inside maxBounds at a specified zoom
@@ -1149,19 +1176,42 @@ L.Map = L.Evented.extend({
 		        this.project(maxBounds.getNorthEast(), zoom),
 		        this.project(maxBounds.getSouthWest(), zoom)
 		    ),
-		    minOffset = projectedMaxBounds.min.subtract(pxBounds.min),
-		    maxOffset = projectedMaxBounds.max.subtract(pxBounds.max),
+		    pxToMaxTL = projectedMaxBounds.min.subtract(pxBounds.min),
+		    pxToMaxBR = projectedMaxBounds.max.subtract(pxBounds.max),
 
-		    dx = this._rebound(minOffset.x, -maxOffset.x),
-		    dy = this._rebound(minOffset.y, -maxOffset.y);
+		    dx = this._rebound(pxToMaxTL.x, pxToMaxBR.x),
+		    dy = this._rebound(pxToMaxTL.y, pxToMaxBR.y);
+
+		console.log(pxToMaxTL, pxToMaxBR);
+
+		L.circleMarker(this.unproject(projectedMaxBounds.min), {color: 'red'}).addTo(this);
+		L.circleMarker(this.unproject(projectedMaxBounds.max), {color: 'yellow'}).addTo(this);
+		L.circleMarker(this.unproject(pxBounds.min), {color: 'blue'}).addTo(this);
+		L.circleMarker(this.unproject(pxBounds.max), {color: 'green'}).addTo(this);
 
 		return new L.Point(dx, dy);
 	},
 
 	_rebound: function (left, right) {
-		return left + right > 0 ?
-			Math.round(left - right) / 2 :
-			Math.max(0, Math.ceil(left)) - Math.max(0, Math.floor(right));
+		console.log(left, right);
+		//if (!this.options.maxBoundsCentering) {
+		//	return Math.max(0, Math.ceil(left)) - Math.max(0, Math.floor(right));
+		//} else {
+			return (left > right) ?
+				Math.round(left + right) / 2 :
+				Math.max(0, Math.ceil(left)) - Math.max(0, Math.floor(-right));
+
+
+
+		if (left > right) {
+			// maxbounds inside pxbounds, centering
+			return Math.round(left + right) / 2
+		}
+
+		if (left <= 0 && right >= 0) {
+			// pxbounds inside maxbounds, no limiting
+			return 0
+		}
 	},
 
 	_limitZoom: function (zoom) {
