@@ -1194,23 +1194,35 @@ L.Map = L.Evented.extend({
 
 	_rebound: function (left, right) {
 		console.log(left, right);
-		//if (!this.options.maxBoundsCentering) {
-		//	return Math.max(0, Math.ceil(left)) - Math.max(0, Math.floor(right));
-		//} else {
-			return (left > right) ?
-				Math.round(left + right) / 2 :
-				Math.max(0, Math.ceil(left)) - Math.max(0, Math.floor(-right));
 
-
-
+		// pxBounds bigger than maxBounds
 		if (left > right) {
-			// maxbounds inside pxbounds, centering
-			return Math.round(left + right) / 2
+
+			// if centering return center
+			if (this.options.maxBoundsCentering) {
+				return Math.round((left + right) / 2);
+			}
+
+			// if maxBounds is within pxBounds
+			if (left >= 0 && right <= 0) {
+				return 0
+			}
+
+			// limiting pxBounds to maxBounds
+			// take smaller, with sign
+			return Math.min(0, Math.ceil(left)) + Math.max(0, Math.ceil(right));
 		}
 
-		if (left <= 0 && right >= 0) {
+		// pxBounds smaller than maxBounds
+		else {
 			// pxbounds inside maxbounds, no limiting
-			return 0
+			if (left <= 0 && right >= 0) {
+				return 0
+			}
+
+			// limiting pxBounds to maxBounds
+			// take larger, with sign
+			return Math.max(0, Math.ceil(left)) + Math.min(0, Math.ceil(right));
 		}
 	},
 
