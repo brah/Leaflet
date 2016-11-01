@@ -11278,23 +11278,38 @@ L.Map.TouchZoom = L.Handler.extend({
 		    p2 = map.mouseEventToContainerPoint(e.touches[1]),
 		    scale = p1.distanceTo(p2) / this._startDist;
 
+		if (this._rotating) {
 
-		this._zoom = map.getScaleZoom(scale, this._startZoom);
-
-		if (!map.options.bounceAtZoomLimits && (
-			(this._zoom < map.getMinZoom() && scale < 1) ||
-			(this._zoom > map.getMaxZoom() && scale > 1))) {
-			this._zoom = map._limitZoom(this._zoom);
+			var theta = Math.atan(vector.x / vector.y);
+			var bearingDelta = (theta - this._startTheta) * L.DomUtil.RAD_TO_DEG;
+			if (vector.y < 0) { bearingDelta += 180; }
+			if (bearingDelta) {
+				map.setBearing(this._startBearing - bearingDelta);
+			}
 		}
 
-		if (map.options.touchZoom === 'center') {
-			this._center = this._startLatLng;
-			if (scale === 1) { return; }
-		} else {
-			// Get delta from pinch to center, so centerLatLng is delta applied to initial pinchLatLng
-			var delta = p1._add(p2)._divideBy(2)._subtract(this._centerPoint);
-			if (scale === 1 && delta.x === 0 && delta.y === 0) { return; }
-			this._center = map.unproject(map.project(this._pinchStartLatLng, this._zoom).subtract(delta), this._zoom);
+		if (this._zooming) {
+			this._zoom = map.getScaleZoom(scale, this._startZoom);
+
+			if (!map.options.bounceAtZoomLimits && (
+				(this._zoom < map.getMinZoom() && scale < 1) ||
+				(this._zoom > map.getMaxZoom() && scale > 1))) {
+				this._zoom = map._limitZoom(this._zoom);
+			}
+
+			if (map.options.touchZoom === 'center') {
+				this._center = this._startLatLng;
+				if (scale === 1) { return; }
+			} else {
+				// Get delta from pinch to center, so centerLatLng is delta applied to initial pinchLatLng
+				delta = p1._add(p2)._divideBy(2)._subtract(this._centerPoint);
+				if (scale === 1 && delta.x === 0 && delta.y === 0) { return; }
+
+				var alpha = -map.getBearing() * L.DomUtil.DEG_TO_RAD;
+
+				this._center = map.unproject(map.project(this._pinchStartLatLng).subtract(delta.rotate(alpha)));
+			}
+
 		}
 
 		if (!this._moved) {
